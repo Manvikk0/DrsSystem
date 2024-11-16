@@ -3,152 +3,159 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cricket DRS System</title>
+  <title>DRS Ball Tracking (HTML + JS)</title>
   <style>
-    /* Inline CSS */
     body {
-      margin: 0;
       font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 0;
       background-color: #f4f4f9;
+    }
+    h1 {
+      margin-top: 20px;
       color: #333;
     }
-
-    .container {
-      text-align: center;
-      padding: 20px;
-    }
-
-    h1 {
-      margin-bottom: 20px;
-      font-size: 2rem;
-      color: #0077b6;
-    }
-
-    .video-container {
-      position: relative;
-      display: inline-block;
-    }
-
-    #camera {
-      width: 640px;
-      height: 360px;
-      border: 2px solid #0077b6;
-    }
-
-    #overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 640px;
-      height: 360px;
-    }
-
-    .decision-panel {
+    canvas {
+      border: 2px solid #333;
+      background-color: #89CFF0;
       margin-top: 20px;
     }
-
+    video {
+      margin-top: 20px;
+      border: 2px solid #333;
+      max-width: 600px;
+    }
+    #controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+    }
     button {
       padding: 10px 20px;
-      font-size: 16px;
-      background-color: #0077b6;
+      background-color: #007BFF;
       color: white;
       border: none;
-      cursor: pointer;
       border-radius: 5px;
+      cursor: pointer;
     }
-
     button:hover {
-      background-color: #005f8c;
-    }
-
-    #decision {
-      margin-top: 20px;
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: #0077b6;
+      background-color: #0056b3;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Cricket DRS System</h1>
-    <div class="video-container">
-      <video id="camera" autoplay playsinline></video>
-      <canvas id="overlay"></canvas>
-    </div>
-    <div class="decision-panel">
-      <button onclick="simulateLBW()">Simulate LBW</button>
-      <div id="decision">Decision: Waiting...</div>
-    </div>
+  <h1>DRS Ball Tracking (HTML + JS)</h1>
+  <div>
+    <input type="file" id="videoUpload" accept="video/*">
+    <video id="videoPlayer" controls></video>
+  </div>
+
+  <canvas id="pitchCanvas" width="600" height="300"></canvas>
+
+  <div id="controls">
+    <button onclick="startSimulation()">Start Simulation</button>
+    <button onclick="resetSimulation()">Reset</button>
   </div>
 
   <script>
-    // Inline JavaScript
-    const canvas = document.getElementById("overlay");
+    const videoPlayer = document.getElementById("videoPlayer");
+    const fileInput = document.getElementById("videoUpload");
+    const canvas = document.getElementById("pitchCanvas");
     const ctx = canvas.getContext("2d");
-    const decisionDiv = document.getElementById("decision");
 
-    // Function to simulate LBW decision
-    function simulateLBW() {
-      // Clear canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    let ballPosition = { x: 50, y: 150 }; // Starting ball position
+    let trajectory = []; // Array to store trajectory points
 
-      // Draw stumps
-      drawStumps();
-
-      // Simulated ball trajectory
-      const trajectory = [
-        { x: 100, y: 300 },
-        { x: 150, y: 250 },
-        { x: 200, y: 200 },
-        { x: 250, y: 160 },
-        { x: 300, y: 120 },
-        { x: 320, y: 100 }, // Impact
-        { x: 340, y: 80 }  // Predicted line
-      ];
-
-      // Draw the ball trajectory
-      ctx.beginPath();
-      ctx.strokeStyle = "red";
-      ctx.lineWidth = 2;
-      trajectory.forEach((point, index) => {
-        if (index === 0) {
-          ctx.moveTo(point.x, point.y);
-        } else {
-          ctx.lineTo(point.x, point.y);
-        }
-      });
-      ctx.stroke();
-
-      // Check if LBW condition is met
-      const impact = trajectory[5];
-      const isLBW = impact.x > 300 && impact.x < 350 && impact.y < 120;
-
-      // Update decision text
-      decisionDiv.textContent = isLBW ? "Decision: OUT" : "Decision: NOT OUT";
-      decisionDiv.style.color = isLBW ? "red" : "green";
-    }
-
-    // Function to draw stumps
-    function drawStumps() {
-      ctx.fillStyle = "blue";
-      const stumpWidth = 10;
-      const stumpHeight = 100;
-      const baseX = 310;
-
-      // Draw three stumps
-      for (let i = 0; i < 3; i++) {
-        ctx.fillRect(baseX + i * 20, 20, stumpWidth, stumpHeight);
+    // Load video
+    fileInput.addEventListener("change", function () {
+      const file = fileInput.files[0];
+      if (file) {
+        const videoURL = URL.createObjectURL(file);
+        videoPlayer.src = videoURL;
       }
+    });
+
+    // Draw the cricket pitch
+    function drawPitch() {
+      ctx.fillStyle = "#6B8E23"; // Grass color
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Stumps (right side)
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(canvas.width - 20, canvas.height / 2 - 30, 10, 60); // Stumps
     }
 
-    // Simulate camera feed (optional placeholder)
-    const video = document.getElementById("camera");
-    navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
-      video.srcObject = stream;
-    }).catch(() => {
-      console.error("Camera access denied. Simulating feed...");
-    });
+    // Draw ball
+    function drawBall(x, y) {
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.fillStyle = "red";
+      ctx.fill();
+      ctx.closePath();
+    }
+
+    // Simulate ball trajectory
+    function startSimulation() {
+      trajectory = calculateTrajectory(ballPosition.x, ballPosition.y);
+
+      let index = 0;
+      const interval = setInterval(() => {
+        if (index >= trajectory.length) {
+          clearInterval(interval);
+          return;
+        }
+
+        const { x, y } = trajectory[index];
+        ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear the canvas
+        drawPitch();
+        drawBall(x, y);
+        index++;
+      }, 50);
+    }
+
+    // Reset the simulation
+    function resetSimulation() {
+      ballPosition = { x: 50, y: 150 }; // Reset position
+      trajectory = [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawPitch();
+      drawBall(ballPosition.x, ballPosition.y);
+    }
+
+    // Calculate trajectory points
+    function calculateTrajectory(startX, startY) {
+      const points = [];
+      let x = startX;
+      let y = startY;
+      let dx = 4; // Horizontal velocity
+      let dy = -2; // Vertical velocity
+
+      for (let i = 0; i < 100; i++) {
+        x += dx;
+        y += dy;
+
+        // Simulate bounce
+        if (y >= canvas.height || y <= 0) {
+          dy = -dy;
+        }
+
+        // Stop when reaching the stumps
+        if (x >= canvas.width - 30) {
+          break;
+        }
+
+        points.push({ x, y });
+      }
+
+      return points;
+    }
+
+    // Initial drawing
+    drawPitch();
+    drawBall(ballPosition.x, ballPosition.y);
   </script>
 </body>
 </html>
