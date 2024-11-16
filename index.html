@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cricket DRS System</title>
+  <style>
+    /* Inline CSS */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f9;
+      color: #333;
+    }
+
+    .container {
+      text-align: center;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-size: 2rem;
+      color: #0077b6;
+    }
+
+    .video-container {
+      position: relative;
+      display: inline-block;
+    }
+
+    #camera {
+      width: 640px;
+      height: 360px;
+      border: 2px solid #0077b6;
+    }
+
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 640px;
+      height: 360px;
+    }
+
+    .decision-panel {
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #0077b6;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    button:hover {
+      background-color: #005f8c;
+    }
+
+    #decision {
+      margin-top: 20px;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #0077b6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Cricket DRS System</h1>
+    <div class="video-container">
+      <video id="camera" autoplay playsinline></video>
+      <canvas id="overlay"></canvas>
+    </div>
+    <div class="decision-panel">
+      <button onclick="simulateLBW()">Simulate LBW</button>
+      <div id="decision">Decision: Waiting...</div>
+    </div>
+  </div>
+
+  <script>
+    // Inline JavaScript
+    const canvas = document.getElementById("overlay");
+    const ctx = canvas.getContext("2d");
+    const decisionDiv = document.getElementById("decision");
+
+    // Function to simulate LBW decision
+    function simulateLBW() {
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw stumps
+      drawStumps();
+
+      // Simulated ball trajectory
+      const trajectory = [
+        { x: 100, y: 300 },
+        { x: 150, y: 250 },
+        { x: 200, y: 200 },
+        { x: 250, y: 160 },
+        { x: 300, y: 120 },
+        { x: 320, y: 100 }, // Impact
+        { x: 340, y: 80 }  // Predicted line
+      ];
+
+      // Draw the ball trajectory
+      ctx.beginPath();
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 2;
+      trajectory.forEach((point, index) => {
+        if (index === 0) {
+          ctx.moveTo(point.x, point.y);
+        } else {
+          ctx.lineTo(point.x, point.y);
+        }
+      });
+      ctx.stroke();
+
+      // Check if LBW condition is met
+      const impact = trajectory[5];
+      const isLBW = impact.x > 300 && impact.x < 350 && impact.y < 120;
+
+      // Update decision text
+      decisionDiv.textContent = isLBW ? "Decision: OUT" : "Decision: NOT OUT";
+      decisionDiv.style.color = isLBW ? "red" : "green";
+    }
+
+    // Function to draw stumps
+    function drawStumps() {
+      ctx.fillStyle = "blue";
+      const stumpWidth = 10;
+      const stumpHeight = 100;
+      const baseX = 310;
+
+      // Draw three stumps
+      for (let i = 0; i < 3; i++) {
+        ctx.fillRect(baseX + i * 20, 20, stumpWidth, stumpHeight);
+      }
+    }
+
+    // Simulate camera feed (optional placeholder)
+    const video = document.getElementById("camera");
+    navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+      video.srcObject = stream;
+    }).catch(() => {
+      console.error("Camera access denied. Simulating feed...");
+    });
+  </script>
+</body>
+</html>
